@@ -1,4 +1,4 @@
-# UniScrape
+⚠️ This project is currently under development. Some features may not work as expected. ⚠️
 
 This is a tool for scraping and processing data from various sources used in RAG project.
 
@@ -25,6 +25,7 @@ pip install .
 ```
 
 ### Run application
+Add files you want to scrape to to_scrape/ and run app:
 ```
 python3 uniscrape/core.py --param
 ```
