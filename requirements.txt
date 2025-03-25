@@ -1,0 +1,16 @@
+html2text==2024.2.26
+beautifulsoup4==4.13.3
+pandas==2.2.2
+requests==2.32.3
+urllib3==2.2.2
+pdf2image==1.17.0
+easyocr==1.7.2
+numpy==1.26.4
+emoji==2.14.1
+PyMuPDF==1.25.3
+torch==2.6.0
+torchaudio==2.6.0
+torchvision==0.21.0
+pillow==10.3.0
+pymongo==4.11.2
+setuptools==77.0.3
