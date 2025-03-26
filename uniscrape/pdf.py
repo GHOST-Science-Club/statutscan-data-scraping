@@ -14,7 +14,7 @@ from typing import Tuple
 
 
 from config_manager import ConfigManager
-from process_text import clean_PDF, process_pdf_metadata
+from process_text import preprocess_text, process_pdf_metadata
 from utils import package_to_json, get_timestamp
 
 logger_tool = logging.getLogger('UniScrape_tools')
@@ -27,7 +27,7 @@ class Pdf:
         self.logger_print = self.config.logger_print
         self.visited_pdfs_file = self.config.visited_pdfs_file
         self.visited_pdfs = self.load_visited_pdfs()
-        self.ocr_reader = easyocr.Reader(['pl', 'en'], gpu=False)
+        self.ocr_reader = easyocr.Reader(['pl', 'en'])
 
     def _get_text_from_pdf(self, path: str) -> Tuple[str, str]:
         """
@@ -46,7 +46,7 @@ class Pdf:
             text = self._extract_text_with_ocr(path)
 
         title = process_pdf_metadata(path)
-        text = clean_PDF(text=text)
+        text = preprocess_text(text)
 
         return title, text
 
