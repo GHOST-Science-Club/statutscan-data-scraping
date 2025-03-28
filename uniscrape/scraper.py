@@ -5,17 +5,19 @@ This module contains functions for scraping data from provided URLs.
 """
 import logging
 import os
-import requests
-from requests.adapters import HTTPAdapter
 import urllib3
 from urllib3.util.retry import Retry
 from typing import Tuple
 import pandas as pd
+import pymupdf
+from pdf2image import convert_from_bytes
+import easyocr
+import numpy as np
 
 from config_manager import ConfigManager
-import process_text
 from utils import package_to_json, create_session, get_timestamp, dump_json
 from database import Database
+from process_text import preprocess_text, clean_HTML, process_web_metadata
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -33,18 +35,20 @@ class Scraper:
 
     def _scrape_text(self, url: str) -> Tuple[str, str]:
         """
-        Performs scraping HTML from site and returns clean text.
+        Scrapes HTML from a webpage and extracts clean text.
 
-        Return:
-            str: Cleaned text.
-            str: Title of document extracted from link.
+        Args:
+            url (str): URL of the webpage.
+
+        Returns:
+            Tuple[str, str]: Extracted title and cleaned text content.
         """
         session = create_session(retry_total=1)
         response = session.get(url)
 
         if response and response.ok:
-            cleaned_response = process_text.clean_HTML(response.text)
-            title = process_text.process_web_metadata(response.text)
+            cleaned_response = clean_HTML(response.text)
+            title = process_web_metadata(response.text)
         elif not response:
             self.logger_tool.info(
                 f"Empty response: {url}. Response: {response}")
@@ -52,7 +56,71 @@ class Scraper:
             self.logger_tool.info(
                 f"Error response: {url}. Response: {response.status_code}")
 
-        return cleaned_response, title
+        return title, cleaned_response
+
+    def _scrape_pdf(self, url: str) -> Tuple[str, str]:
+        """
+        Extracts text from a PDF file. Uses OCR if the PDF contains images.
+
+        Args:
+            url (str): URL of the PDF.
+
+        Returns:
+            Tuple[str, str]: Extracted title and text content.
+        """
+
+        session = create_session(retry_total=1)
+        response = session.get(url)
+
+        if response and response.ok:
+            pdf_bytes = response.content
+        elif not response:
+            self.logger_tool.info(
+                f"Empty response: {url}. Response: {response}")
+        elif not response.ok:
+            self.logger_tool.info(
+                f"Error response: {url}. Response: {response.status_code}")
+
+        text, title = "", ""
+
+        try:
+            doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+            text = "\n".join(page.get_text("text") for page in doc)
+
+        except Exception as e:
+            self.logger_print.error(f"Error reading PDF with PyMuPDF: {e}")
+            self.logger_tool.error(f"Error reading PDF with PyMuPDF: {e}")
+
+        if not text.strip():
+            text = self._extract_with_ocr(pdf_bytes)
+
+        cleaned_response = preprocess_text(text)
+        metadata = doc.metadata
+        title = metadata.get('title', '').strip()
+
+        return title, cleaned_response
+
+    def _extract_with_ocr(self, pdf):
+        """
+        Extracts text from an image-based PDF using OCR.
+
+        Args:
+            pdf_bytes (bytes): Byte content of the PDF.
+
+        Returns:
+            str: Extracted text.
+        """
+        try:
+            images = convert_from_bytes(pdf)
+            reader = easyocr.Reader(['en', 'pl'])
+            text = "\n".join(" ".join(result[1] for result in reader.readtext(
+                np.array(image))) for image in images)
+
+        except Exception as e:
+            print(f"Error during OCR processing: {e}")
+            return ""
+
+        return text
 
     def start_scraper(self, urls_to_scrap: pd.DataFrame) -> int:
         """
@@ -84,15 +152,19 @@ class Scraper:
                     continue
 
                 try:
-                    scraped_count += 1
                     self.logger_print.info(
                         f"Scraping at index: {index} -> {url}")
                     self.logger_tool.info(
                         f"Scraping at index: {index} -> {url}")
 
-                    result, title = self._scrape_text(url)
+                    if url.endswith('pdf'):
+                        title, result = self._scrape_pdf(url)
+                    else:
+                        title, result = self._scrape_text(url)
+
                     date = get_timestamp()
                     json_result = package_to_json(title, result, url, date)
+                    scraped_count += 1
 
                     # Send if database acces is True and print in console
                     self.logger_print.info(dump_json(json_result))

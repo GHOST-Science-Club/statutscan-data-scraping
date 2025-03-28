@@ -47,7 +47,7 @@ def preprocess_text(text):
 
 
 def clean_HTML(html: str) -> str:
-    soup = BeautifulSoup(html, "lxml")
+    soup = BeautifulSoup(html, "html.parser")
 
     for tag in soup(["script", "style", "nav", "aside", "footer", "form", "noscript", "iframe", "a"]):
         tag.extract()

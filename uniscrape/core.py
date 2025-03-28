@@ -25,10 +25,17 @@ def crawl_and_scrape():
         config.logger_tool.info(f"Scraped {docs} documents.")
 
 
-def scrape_pdfs() -> None:
+def scrape_local_pdfs() -> None:
     scraper = Pdf(config_manager=config)
     # Start pdf scraping
     docs = scraper.start_scraper_pdf(config.pdfs_to_scrape)
+    config.logger_tool.info(f"Scraped {docs} documents.")
+
+
+def scrape() -> None:
+    crawler = Crawler(config_manager=config)
+    scraper = Scraper(config_manager=config)
+    docs = scraper.start_scraper(crawler.get_urls_to_scrap())
     config.logger_tool.info(f"Scraped {docs} documents.")
 
 
@@ -39,12 +46,16 @@ def main():
                         help="Crawl and scrape URLs.")
     parser.add_argument('--pdf', action='store_true',
                         help="Scrape PDF documents.")
+    parser.add_argument('--scrape', action='store_true',
+                        help='Scrape files or urls from .csv')
     args = parser.parse_args()
 
     if args.crawl:
         crawl_and_scrape()
     elif args.pdf:
-        scrape_pdfs()
+        scrape_local_pdfs()
+    elif args.scrape:
+        scrape()
     else:
         print("No valid arguments provided. Use --crawl or --pdf.")
 
