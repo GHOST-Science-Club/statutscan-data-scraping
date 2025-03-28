@@ -12,6 +12,8 @@ class ConfigManager:
         self.sleep_time = 2
         self.maximum_links_to_visit = 5
 
+        self.allow_databasse_connection = False
+
         # Directories
         self.visited_url_folder = "visited/"
         self.visited_url_file = "visited_urls.csv"

@@ -21,7 +21,11 @@ def package_to_json(title: str, content: str, source: str, timestamp: datetime) 
         "content": content
     }
 
-    return json.dumps(data, indent=4, ensure_ascii=False)
+    return data
+
+
+def dump_json(json_file: dict) -> str:
+    return json.dumps(json_file, ensure_ascii=False, indent=4)
 
 
 def create_session(retry_total: bool | int = 3, retry_backoff: float = 3.0, verify: bool = False) -> requests.Session:

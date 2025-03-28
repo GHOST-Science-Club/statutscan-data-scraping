@@ -15,7 +15,8 @@ from typing import Tuple
 
 from config_manager import ConfigManager
 from process_text import preprocess_text, process_pdf_metadata
-from utils import package_to_json, get_timestamp
+from utils import package_to_json, get_timestamp, dump_json
+from database import Database
 
 logger_tool = logging.getLogger('UniScrape_tools')
 
@@ -74,6 +75,8 @@ class Pdf:
 
     def start_scraper_pdf(self, folder_path: str) -> int:
         scraped_count = 0
+        db = Database(self.config)
+        db.connect_to_database()
 
         if not os.path.exists(folder_path):
             self.logger_tool.error(f"Directory {folder_path} not exist.")
@@ -98,9 +101,14 @@ class Pdf:
 
                 title, text = self._get_text_from_pdf(pdf_path)
                 date = get_timestamp()
+
                 json_result = package_to_json(
                     title=title, content=text, source=pdf_name, timestamp=date)
-                print(json_result)
+
+                # Send if database acces is True and print in console
+                self.logger_print.info(dump_json(json_result))
+                if self.config.allow_databasse_connection:
+                    db.append_to_database(json_result)
 
                 self.append_to_visited_pdfs(pdf_name)
                 scraped_count += 1
@@ -109,6 +117,7 @@ class Pdf:
             self.logger_tool.error(f"Error scraping pdf {pdf_name}: {e}")
             self.logger_print.error(f"Error scraping pdf {pdf_name}: {e}")
 
+        db.close_connection()
         return scraped_count
 
     def load_visited_pdfs(self) -> pd.DataFrame:

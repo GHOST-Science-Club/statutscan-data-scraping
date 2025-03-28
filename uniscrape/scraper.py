@@ -14,7 +14,8 @@ import pandas as pd
 
 from config_manager import ConfigManager
 import process_text
-from utils import package_to_json, create_session, get_timestamp
+from utils import package_to_json, create_session, get_timestamp, dump_json
+from database import Database
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -61,6 +62,8 @@ class Scraper:
             int: Count of scraped documents.
         """
         scraped_count = 0
+        db = Database(self.config)
+        db.connect_to_database()
 
         if urls_to_scrap.empty:
             self.logger_tool.info("No URLs to scrap.")
@@ -90,7 +93,11 @@ class Scraper:
                     result, title = self._scrape_text(url)
                     date = get_timestamp()
                     json_result = package_to_json(title, result, url, date)
-                    print(json_result)
+
+                    # Send if database acces is True and print in console
+                    self.logger_print.info(dump_json(json_result))
+                    if self.config.allow_databasse_connection:
+                        db.append_to_database(json_result)
 
                     visited_urls = pd.concat(
                         [visited_urls, pd.DataFrame({'url': [url]})], ignore_index=True)
@@ -104,6 +111,7 @@ class Scraper:
             self.logger_tool.error(f"Error in scraper: {e}")
             self.logger_print.error(f"Error in scraper: {e}")
 
+        db.close_connection()
         return scraped_count
 
     def append_to_visited_urls(self, urls_dataframe: pd.DataFrame, file_name: str = None, folder: str = None, mode='a') -> None:
