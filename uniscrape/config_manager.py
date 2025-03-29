@@ -10,7 +10,7 @@ import os
 class ConfigManager:
     def __init__(self, print_to_console: bool = True, log_level=logging.INFO):
         self.sleep_time = 2
-        self.maximum_links_to_visit = 5
+        self.maximum_links_to_visit = 10
 
         self.allow_databasse_connection = False
 

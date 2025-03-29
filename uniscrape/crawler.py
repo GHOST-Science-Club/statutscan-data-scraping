@@ -60,7 +60,7 @@ class Crawler:
                 response = session.get(url)
 
                 if response.status_code != 200:
-                    self.logger_tool("Response not 200")
+                    self.logger_tool.warning("Response not 200")
                     continue
 
                 visited_urls.add(normalized_url)
@@ -72,6 +72,8 @@ class Crawler:
                     full_url = urljoin(url, link['href'])
                     normalized_full_url = self._normalize_url(full_url)
                     if normalized_full_url.startswith(starting_url) and normalized_full_url not in visited_urls:
+                        urls_to_visit.append(full_url)
+                    if normalized_full_url.lower().endswith('.pdf') and normalized_full_url not in visited_urls:
                         urls_to_visit.append(full_url)
 
                 time.sleep(self.sleep_time)
