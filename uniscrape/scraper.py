@@ -33,6 +33,8 @@ class Scraper:
         self.visited_folder = self.config.visited_url_folder
         self.visited_file = self.config.visited_url_file
 
+        self.language = self.config.language
+
     def _scrape_text(self, url: str) -> Tuple[str, str]:
         """
         Scrapes HTML from a webpage and extracts clean text.

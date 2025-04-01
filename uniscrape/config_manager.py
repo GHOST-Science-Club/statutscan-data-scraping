@@ -8,11 +8,28 @@ import os
 
 
 class ConfigManager:
-    def __init__(self, print_to_console: bool = True, log_level=logging.INFO):
-        self.sleep_time = 2
-        self.maximum_links_to_visit = 10
+    """
+    A configuration manager for setting up and managing settings for a crawler and scraper.
+    """
 
-        self.allow_databasse_connection = False
+    def __init__(self, print_to_console: bool = True, log_level=logging.INFO, database: bool = False, sleep_time: float = 1.5,
+                 max_links: int = 10, dataset_language: str = 'PL'):
+        """
+        Initializes ConfigManager with default or overridden settings.
+
+        Parameters
+            print_to_console: Flag to enable or disable printing logs in console.
+            log_level: Logging level.
+            database: Flag to enable or disable sending scraped content to database.
+            sleep_time: Time between requests.
+            max_links: Maximum links to be crawled (TEMPORARY)
+            dataser_language: Default language of scraped websites.
+        """
+        # Configurables
+        self.sleep_time = sleep_time
+        self.maximum_links_to_visit = max_links
+        self.allow_databasse_connection = database
+        self.language = dataset_language
 
         # Directories
         self.visited_url_folder = "visited/"
