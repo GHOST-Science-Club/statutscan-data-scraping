@@ -11,12 +11,14 @@ from urllib3.util.retry import Retry
 from datetime import datetime
 
 
-def package_to_json(title: str, content: str, source: str, timestamp: datetime) -> dict:
+def package_to_json(title: str, content: str, source: str, timestamp: datetime, language: str, metrics: dict) -> dict:
     data = {
         "metadata": {
             "title": title,
             "date": timestamp,
-            "source": source
+            "source": source,
+            "language": language,
+            "metrics": metrics
         },
         "content": content
     }

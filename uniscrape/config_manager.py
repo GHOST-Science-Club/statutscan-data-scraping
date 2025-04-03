@@ -13,7 +13,7 @@ class ConfigManager:
     """
 
     def __init__(self, print_to_console: bool = True, log_level=logging.INFO, database: bool = False, sleep_time: float = 1.5,
-                 max_links: int = 10, dataset_language: str = 'PL'):
+                 max_links: int = 10, minimum_text_length: int = 100, dataset_language: str = 'pl'):
         """
         Initializes ConfigManager with default or overridden settings.
 
@@ -23,13 +23,14 @@ class ConfigManager:
             database: Flag to enable or disable sending scraped content to database.
             sleep_time: Time between requests.
             max_links: Maximum links to be crawled (TEMPORARY)
-            dataser_language: Default language of scraped websites.
+            dataset_language: Default language of scraped websites.
         """
         # Configurables
         self.sleep_time = sleep_time
         self.maximum_links_to_visit = max_links
         self.allow_databasse_connection = database
         self.language = dataset_language
+        self.min_text_len = minimum_text_length
 
         # Directories
         self.visited_url_folder = "visited/"

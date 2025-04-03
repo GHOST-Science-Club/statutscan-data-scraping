@@ -17,8 +17,8 @@ import numpy as np
 from config_manager import ConfigManager
 from utils import package_to_json, create_session, get_timestamp, dump_json
 from database import Database
+from metrics import Analyzer
 from process_text import preprocess_text, clean_HTML, process_web_metadata
-
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -32,7 +32,6 @@ class Scraper:
         self.logger_print = self.config.logger_print
         self.visited_folder = self.config.visited_url_folder
         self.visited_file = self.config.visited_url_file
-
         self.language = self.config.language
 
     def _scrape_text(self, url: str) -> Tuple[str, str]:
@@ -164,14 +163,26 @@ class Scraper:
                     else:
                         title, result = self._scrape_text(url)
 
+                    # All metadata and metrics
                     date = get_timestamp()
-                    json_result = package_to_json(title, result, url, date)
+                    language = self.config.language
+
+                    analyzer = Analyzer(result, config=self.config)
+                    metrics = analyzer.get_metrics()
+
+                    # Pack into JSON
+                    json_result = package_to_json(
+                        title, result, url, date, language, metrics)
                     scraped_count += 1
 
                     # Send if database acces is True and print in console
-                    self.logger_print.info(dump_json(json_result))
-                    if self.config.allow_databasse_connection:
-                        db.append_to_database(json_result)
+                    if len(result) > self.config.min_text_len:
+                        self.logger_print.info(dump_json(json_result))
+                        if self.config.allow_databasse_connection:
+                            db.append_to_database(json_result)
+                    else:
+                        self.logger_tool.warning(
+                            f"Text to short: {len(result)} while minumum is: {self.config.min_text_len}")
 
                     visited_urls = pd.concat(
                         [visited_urls, pd.DataFrame({'url': [url]})], ignore_index=True)
