@@ -1,9 +1,11 @@
 ⚠️ This project is currently under development. Some features may not work as expected. ⚠️
 
 This is a tool for scraping and processing data from various sources used in RAG project.
+See our [app](https://github.com/GHOST-Science-Club/statutscan-app). 
 
 ### Installation (for Linux/MacOS)
-Ensure you have Python 3.12 installed.
+Ensure you have Python 3.12 installed. Remember to add **OPEN_AI_KEY** and **MONGO_KEY** to .env file.
+
 
 #### Clone repo and cd into
 ```
