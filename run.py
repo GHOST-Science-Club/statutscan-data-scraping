@@ -3,7 +3,7 @@ from uniscrape.core import Core
 from uniscrape.config_manager import ConfigManager
 
 # Define you settings here
-config = ConfigManager()
+config = ConfigManager(database=False)
 url = None
 
 

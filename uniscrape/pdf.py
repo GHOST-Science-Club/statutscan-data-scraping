@@ -4,7 +4,7 @@ PDF Module
 This module contains all functions to work with PDFs.
 """
 from .config_manager import ConfigManager
-from .process_text import preprocess_text, get_title_from_pdf
+from .process_text import clean_PDF, get_title_from_pdf
 from .utils import package_to_json, get_timestamp, dump_json
 from .database import Database
 
@@ -47,7 +47,7 @@ class Pdf:
             text = self._extract_text_with_ocr(path)
 
         title = get_title_from_pdf(path)
-        text = preprocess_text(text)
+        text = clean_PDF(text)
 
         return title, text
 
@@ -107,7 +107,7 @@ class Pdf:
 
                 # Send if database acces is True and print in console
                 self.logger_print.info(dump_json(json_result))
-                if self.config.allow_databasse_connection:
+                if self.config.allow_database_connection:
                     db.append_to_database(json_result)
 
                 self.append_to_visited_pdfs(pdf_name)

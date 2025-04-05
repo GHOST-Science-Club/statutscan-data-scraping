@@ -5,6 +5,7 @@ This module is responsible for configuration and settings used in this project.
 """
 import logging
 import os
+from dotenv import load_dotenv
 
 
 class ConfigManager:
@@ -13,7 +14,7 @@ class ConfigManager:
     """
 
     def __init__(self, print_to_console: bool = True, log_level=logging.INFO, database: bool = False, sleep_time: float = 1.5,
-                 max_links: int = 10, minimum_text_length: int = 100, dataset_language: str = 'pl'):
+                 max_links: int = 10, minimum_text_length: int = 100, max_retries: int = 2, dataset_language: str = 'pl'):
         """
         Initializes ConfigManager with default or overridden settings.
 
@@ -22,15 +23,22 @@ class ConfigManager:
             log_level: Logging level.
             database: Flag to enable or disable sending scraped content to database.
             sleep_time: Time between requests.
-            max_links: Maximum links to be crawled (TEMPORARY)
+            max_links: Maximum links to be crawled (TEMPORARY).
+            max_retries: How much retries we allow in request.
             dataset_language: Default language of scraped websites.
         """
         # Configurables
         self.sleep_time = sleep_time
         self.maximum_links_to_visit = max_links
-        self.allow_databasse_connection = database
+        self.allow_database_connection = database
         self.language = dataset_language
         self.min_text_len = minimum_text_length
+        self.max_retries = max_retries
+
+        # API
+        load_dotenv()
+        self.database_api_key = os.getenv('MONGO_KEY')
+        self.openai_api_key = os.getenv('OPEN_AI_KEY')
 
         # Directories
         self.visited_url_folder = "visited/"

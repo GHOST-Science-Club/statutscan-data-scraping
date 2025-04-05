@@ -6,8 +6,6 @@ from .config_manager import ConfigManager
 from pymongo.server_api import ServerApi
 from pymongo.mongo_client import MongoClient
 from pymongo.errors import ConnectionFailure, PyMongoError
-import os
-from dotenv import load_dotenv
 
 
 class Database():
@@ -16,8 +14,7 @@ class Database():
         self.logger_tool = config_manager.logger_tool
         self.logger_print = config_manager.logger_print
         # Database settings
-        load_dotenv()
-        self.uri = os.getenv('URI')
+        self.uri = config_manager.database_api_key
         self.database_name = database_name
         self.collection_name = collection_name
         self.client = None

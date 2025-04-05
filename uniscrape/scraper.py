@@ -7,7 +7,7 @@ from .config_manager import ConfigManager
 from .utils import package_to_json, create_session, get_timestamp, dump_json
 from .database import Database
 from .metrics import Analyzer
-from .process_text import preprocess_text, clean_HTML, get_title_from_url
+from .process_text import clean_PDF, clean_HTML, get_title_from_url
 
 import logging
 import os
@@ -34,7 +34,8 @@ class Scraper:
         self.visited_folder = self.config.visited_url_folder
         self.visited_file = self.config.visited_url_file
         self.language = self.config.language
-        self.ocr = easyocr.Reader(['en', 'pl'])
+        self.api_key = self.config.openai_api_key
+        self.ocr = easyocr.Reader([self.language])
 
     def _scrape_text(self, url: str) -> Tuple[str, str]:
         """
@@ -46,7 +47,7 @@ class Scraper:
         Returns:
             Tuple[str, str]: Extracted title and cleaned text content.
         """
-        session = create_session(retry_total=1)
+        session = create_session(retry_total=self.config.max_retries)
         response = session.get(url)
 
         if response and response.ok:
@@ -72,7 +73,7 @@ class Scraper:
             Tuple[str, str]: Extracted title and text content.
         """
 
-        session = create_session(retry_total=1)
+        session = create_session(retry_total=self.config.max_retries)
         response = session.get(url)
 
         if response and response.ok:
@@ -97,7 +98,7 @@ class Scraper:
         if not text.strip():
             text = self._extract_with_ocr(pdf_bytes)
 
-        cleaned_response = preprocess_text(text)
+        cleaned_response = clean_PDF(text, self.api_key)
         title = get_title_from_url(None, url)
 
         return title, cleaned_response
@@ -179,7 +180,7 @@ class Scraper:
                     # Send if database acces is True and print in console
                     if len(result) > self.config.min_text_len:
                         self.logger_print.info(dump_json(json_result))
-                        if self.config.allow_databasse_connection:
+                        if self.config.allow_database_connection:
                             db.append_to_database(json_result)
                     else:
                         self.logger_tool.warning(

@@ -10,6 +10,13 @@ import emoji
 import pymupdf
 import html2text
 import os
+from openai import OpenAI
+from pydantic import BaseModel, Field
+
+
+class MarkdownChat(BaseModel):
+    response_text: str = Field(
+        ..., description="Clean Markdown, ready for display, paragraphs, content and structure preserved.")
 
 
 def remove_special_characters(text, special_chars=None):
@@ -21,31 +28,24 @@ def remove_special_characters(text, special_chars=None):
     return text.strip()
 
 
-def remove_repeated_substrings(text, pattern=r'\.{2,}'):
-    text = re.sub(pattern, '.', text)
-    return text.strip()
+def clean_PDF(text: str, api_key: str) -> str:
+    """
+    This function returns content from PDFs in markdown. It is using LLM to parse text.
+    """
+    client = OpenAI(api_key=api_key)
 
+    response = client.beta.chat.completions.parse(
+        model="gpt-4o-mini",
+        messages=[{"role": "system",
+                   "content": "You are helpful assistant that helps with document parsing."},
+                  {"role": "user",
+                   "content": f"Convert given text to markdown: {text}"}],
+        response_format=MarkdownChat
+    )
 
-def remove_extra_spaces(text):
-    text = re.sub(r'\b([A-Z]) (\w)', r'\1\2', text)
-    text = re.sub(r'\n\s*\n', '\n\n', text)
-    text = re.sub(r'\s+', ' ', text)
-    text = re.sub(r'\s+\.', '.', text)
-    text = "\n".join(line.strip() for line in text.split("\n") if line.strip())
-    return text.strip()
-
-
-def preprocess_text(text):
-    # Remove special characters
-    text = remove_special_characters(text)
-
-    # Remove repeated substrings like dots
-    text = remove_repeated_substrings(text)
-
-    # Remove extra spaces between lines and within lines
-    text = remove_extra_spaces(text)
-
-    return text.strip()
+    message = response.choices[0].message
+    text = message.parsed.response_text
+    return remove_special_characters(text)
 
 
 def clean_HTML(html: str) -> str:
