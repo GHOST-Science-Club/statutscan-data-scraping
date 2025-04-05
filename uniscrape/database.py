@@ -1,11 +1,11 @@
 """
 This module is responsible for connection to database.
 """
+from .config_manager import ConfigManager
+
 from pymongo.server_api import ServerApi
 from pymongo.mongo_client import MongoClient
 from pymongo.errors import ConnectionFailure, PyMongoError
-
-from config_manager import ConfigManager
 import os
 from dotenv import load_dotenv
 

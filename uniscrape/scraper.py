@@ -3,6 +3,12 @@ Scraper Module
 
 This module contains functions for scraping data from provided URLs.
 """
+from .config_manager import ConfigManager
+from .utils import package_to_json, create_session, get_timestamp, dump_json
+from .database import Database
+from .metrics import Analyzer
+from .process_text import preprocess_text, clean_HTML, get_title_from_url
+
 import logging
 import os
 import urllib3
@@ -14,11 +20,6 @@ from pdf2image import convert_from_bytes
 import easyocr
 import numpy as np
 
-from config_manager import ConfigManager
-from utils import package_to_json, create_session, get_timestamp, dump_json
-from database import Database
-from metrics import Analyzer
-from process_text import preprocess_text, clean_HTML, get_title_from_url
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

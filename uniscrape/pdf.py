@@ -3,6 +3,11 @@ PDF Module
 
 This module contains all functions to work with PDFs.
 """
+from .config_manager import ConfigManager
+from .process_text import preprocess_text, get_title_from_pdf
+from .utils import package_to_json, get_timestamp, dump_json
+from .database import Database
+
 import logging
 import pymupdf
 from pdf2image import convert_from_path
@@ -12,11 +17,6 @@ import os
 import pandas as pd
 from typing import Tuple
 
-
-from config_manager import ConfigManager
-from process_text import preprocess_text, get_title_from_pdf
-from utils import package_to_json, get_timestamp, dump_json
-from database import Database
 
 logger_tool = logging.getLogger('UniScrape_tools')
 

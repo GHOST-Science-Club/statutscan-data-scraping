@@ -3,14 +3,14 @@ Crawler Module
 
 Crawler module is responsible for crawling through website and collect urls.
 """
-from config_manager import ConfigManager
+from .config_manager import ConfigManager
+from .utils import create_session
+
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 import time
 import pandas as pd
 import os
-
-from utils import create_session
 
 
 class Crawler:

@@ -4,10 +4,10 @@ Metrics module
 This module is responsible for calculating metrics of scraped document.
 Metrics are later used in dashboards or NLP analysis.
 """
+from .config_manager import ConfigManager
 
 import textstat
 import spacy
-from config_manager import ConfigManager
 import re
 
 
