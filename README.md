@@ -25,13 +25,15 @@ pip install .
 ```
 
 ### Run application
-Add files you want to scrape to to_scrape/ and run app:
+Add url you want to scrape and run app:
 ```
-python3 uniscrape/core.py --param
+python3 run.py --param
 ```
 Parameters:
+- --scrape 
 - --pdf
 - --crawl
+- --crawl_and_scrape
 
 ### Structure
 ```

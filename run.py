@@ -9,7 +9,7 @@ url = None
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Crawl and scrape or scrape PDFs."
+        description="Parameters listed below:"
     )
     parser.add_argument('--crawl_and_scrape', action='store_true',
                         help="Crawl and scrape URLs.")
