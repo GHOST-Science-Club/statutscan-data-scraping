@@ -18,7 +18,7 @@ from config_manager import ConfigManager
 from utils import package_to_json, create_session, get_timestamp, dump_json
 from database import Database
 from metrics import Analyzer
-from process_text import preprocess_text, clean_HTML, process_web_metadata
+from process_text import preprocess_text, clean_HTML, get_title_from_url
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -33,6 +33,7 @@ class Scraper:
         self.visited_folder = self.config.visited_url_folder
         self.visited_file = self.config.visited_url_file
         self.language = self.config.language
+        self.ocr = easyocr.Reader(['en', 'pl'])
 
     def _scrape_text(self, url: str) -> Tuple[str, str]:
         """
@@ -49,7 +50,7 @@ class Scraper:
 
         if response and response.ok:
             cleaned_response = clean_HTML(response.text)
-            title = process_web_metadata(response.text)
+            title = get_title_from_url(response.text, url)
         elif not response:
             self.logger_tool.info(
                 f"Empty response: {url}. Response: {response}")
@@ -96,8 +97,7 @@ class Scraper:
             text = self._extract_with_ocr(pdf_bytes)
 
         cleaned_response = preprocess_text(text)
-        metadata = doc.metadata
-        title = metadata.get('title', '').strip()
+        title = get_title_from_url(None, url)
 
         return title, cleaned_response
 
@@ -113,7 +113,7 @@ class Scraper:
         """
         try:
             images = convert_from_bytes(pdf)
-            reader = easyocr.Reader(['en', 'pl'])
+            reader = self.ocr
             text = "\n".join(" ".join(result[1] for result in reader.readtext(
                 np.array(image))) for image in images)
 

@@ -14,7 +14,7 @@ from typing import Tuple
 
 
 from config_manager import ConfigManager
-from process_text import preprocess_text, process_pdf_metadata
+from process_text import preprocess_text, get_title_from_pdf
 from utils import package_to_json, get_timestamp, dump_json
 from database import Database
 
@@ -46,7 +46,7 @@ class Pdf:
             self.logger_tool.warning(f"Using OCR for {path}...")
             text = self._extract_text_with_ocr(path)
 
-        title = process_pdf_metadata(path)
+        title = get_title_from_pdf(path)
         text = preprocess_text(text)
 
         return title, text

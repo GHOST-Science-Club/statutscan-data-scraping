@@ -8,6 +8,8 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import emoji
 import pymupdf
+import html2text
+import os
 
 
 def remove_special_characters(text, special_chars=None):
@@ -47,31 +49,35 @@ def preprocess_text(text):
 
 
 def clean_HTML(html: str) -> str:
+    """
+    This function is responsible for parsing HTML and converting it to markdown format.
+
+    returns:
+        str: Formatted string (markdown) 
+    """
     soup = BeautifulSoup(html, "html.parser")
 
-    for tag in soup(["script", "style", "nav", "aside", "footer", "form", "noscript", "iframe", "a"]):
+    for tag in soup(["script", "style", "nav", "aside", "footer", "form", "noscript", "iframe", "a", "img"]):
         tag.extract()
 
     main_content = soup.find("article") or soup.find("main") or soup.body
 
-    text = main_content.get_text(
-        separator=" ", strip=True) if main_content else soup.get_text(separator=" ", strip=True)
-
-    text = preprocess_text(text)
+    text = html2text.html2text(str(main_content))
+    text = remove_special_characters(text)
 
     return text
 
 
-def process_web_metadata(html: str) -> str:
-    soup = BeautifulSoup(html, "html.parser")
+def get_title_from_url(html: str, url: str) -> str:
+    if html:
+        soup = BeautifulSoup(html, "html.parser")
+        title = soup.find("meta", property="og:title")
+        return title["content"] if title and "content" in title.attrs else urlparse(url).path
 
-    title = soup.find("meta", property="og:title")
-    title_content = title["content"] if title else "Title not found"
-
-    return title_content
+    return os.path.splitext(os.path.basename(urlparse(url).path))[0]
 
 
-def process_pdf_metadata(path: str) -> str:
+def get_title_from_pdf(path: str) -> str:
     doc = pymupdf.open(path)
     metadata = doc.metadata
     return metadata.get("title")
