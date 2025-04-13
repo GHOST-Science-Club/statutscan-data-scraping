@@ -16,6 +16,8 @@ import numpy as np
 import os
 import pandas as pd
 from typing import Tuple
+import spacy
+import re
 
 
 logger_tool = logging.getLogger('UniScrape_tools')
@@ -29,6 +31,7 @@ class Pdf:
         self.visited_pdfs_file = self.config.visited_pdfs_file
         self.visited_pdfs = self.load_visited_pdfs()
         self.ocr_reader = easyocr.Reader(['pl', 'en'])
+        self.nlp = spacy.load("pl_core_news_sm")
 
     def _get_text_from_pdf(self, path: str) -> Tuple[str, str]:
         """
@@ -39,7 +42,7 @@ class Pdf:
             str: Content of pdf file.
         """
         doc = pymupdf.open(path)
-        text = "\n".join(page.get_text() for page in doc)
+        text = "\n".join(page.get_text().strip() for page in doc)
 
         # If no text is recognized, use OCR
         if not text.strip():
@@ -47,9 +50,54 @@ class Pdf:
             text = self._extract_text_with_ocr(path)
 
         title = get_title_from_pdf(path)
-        text = clean_PDF(text)
+        text = clean_PDF(text, self.config.openai_api_key)
 
         return title, text
+    
+    def _get_institution_name_from_pdf(self,title: str,text: str) -> str:
+        """
+        This function extracts institution name from pdf title and text.
+
+        Returns:
+            str: Institution name.
+        """
+        institution_name = None
+        text = re.sub(r"[\n\r]"," ",text).strip()
+        text_stripped = re.sub(r"\s+", ' ',text)
+        doc = self.nlp(text_stripped)
+        places = []  #(place_name,start_index,start_char,place_name_lem)
+
+        for ent in doc.ents:
+            if ent.label_ == 'placeName':
+                place_index = ent.start_char
+                start_index=place_index-70
+                if place_index-70<0:
+                    start_index=0
+                places.append((ent.text,start_index,ent.start_char))
+
+        # regex_start = r"(?:szkoł{1,3}|uniwersytet[a-z]?|uczelni\w{0,3}|akademi[a-z]?|instytut|wydział|zakład|katedra|technikum|liceum|zesp(?:ó|o)[a-z]{1,3}|zespół szkół|politechni(?:k|c)[a-z]|wyższ[a-z]{1,2})"
+        regex_school_number = r"([XIVL]{1,7}\s)?"
+        regex_school_type = r"(?:szkoła|uniwersytet|uczelnia|akademi[a-z]?|instytut|wydział|zakład|katedra|technikum|liceum|zesp(?:ó|o)[a-z]{1,3}|zespół szkół|politechni(?:k|c)[a-z]|wyższ[a-z]{1,2})"
+        regex_start = rf"{regex_school_number}{regex_school_type}"
+
+        for (place_name,start_ind,start_char_place) in places:
+
+            text_to_analyse = text_stripped[start_ind:start_char_place+len(place_name)]
+
+            regex_combined_1 = rf"STATU(?:T|C).*\s+({regex_start}.*{place_name})" # school name often comes after "STATUT"
+            regex_combined_2 = rf"{regex_start}.*{place_name}"
+            
+            result_1 = re.search(regex_combined_1,text_to_analyse,re.IGNORECASE )
+            result_2 = re.search(regex_combined_2, text_to_analyse, re.IGNORECASE ) 
+            
+            if result_1:
+                institution_name_statut = result_1.group(1) # Extracting only school name
+            if result_2: 
+                institution_name = result_2.group()
+                break
+            
+        return institution_name if institution_name is not None else institution_name_statut
+            
 
     def _extract_text_with_ocr(self, path: str) -> str:
         """
@@ -100,10 +148,13 @@ class Pdf:
                 self.logger_tool.info(f"Scraping pdf: {pdf_name}")
 
                 title, text = self._get_text_from_pdf(pdf_path)
+                institution_name = self._get_institution_name_from_pdf(title,text)
+                self.logger_print.info(f"\n Scraped Institution name is {institution_name}")
+
                 date = get_timestamp()
 
                 json_result = package_to_json(
-                    title=title, content=text, source=pdf_name, timestamp=date)
+                    title=institution_name, content=text, source=pdf_name, timestamp=date,language=self.config.language, metrics={})
 
                 # Send if database acces is True and print in console
                 self.logger_print.info(dump_json(json_result))
