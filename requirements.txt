@@ -16,3 +16,4 @@ pymongo==4.11.2
 setuptools==77.0.3
 textstat==0.7.5
 spacy
+pymupdfllm

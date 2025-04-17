@@ -3,8 +3,8 @@ from uniscrape.core import Core
 from uniscrape.config_manager import ConfigManager
 
 # Define you settings here
-config = ConfigManager(database=False)
-url = None
+config = ConfigManager(database=False, max_links=30)
+url = "https://instrukcje.put.poznan.pl/category/vpn/"
 
 
 def main():
@@ -32,7 +32,8 @@ def main():
     elif args.crawl:
         runner.crawl()
     else:
-        print("No valid arguments provided. Use --crawl or --pdf.")
+        print(
+            "No valid arguments provided. Use --[crawl | crawl_and_scrape | scrape].")
 
 
 if __name__ == "__main__":

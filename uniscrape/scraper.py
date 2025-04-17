@@ -19,6 +19,8 @@ import pymupdf
 from pdf2image import convert_from_bytes
 import easyocr
 import numpy as np
+import pymupdf4llm
+import markdown_it
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -96,9 +98,13 @@ class Scraper:
             self.logger_tool.error(f"Error reading PDF with PyMuPDF: {e}")
 
         if not text.strip():
+            # Use OCR
             text = self._extract_with_ocr(pdf_bytes)
+            cleaned_response = clean_PDF(text, self.api_key)
+        else:
+            # Standard scraping
+            cleaned_response = pymupdf4llm.to_markdown(doc)
 
-        cleaned_response = clean_PDF(text, self.api_key)
         title = get_title_from_url(None, url)
 
         return title, cleaned_response
