@@ -55,49 +55,103 @@ class Pdf:
         return title, text
     
     def _get_institution_name_from_pdf(self,title: str,text: str) -> str:
-        """
-        This function extracts institution name from pdf title and text.
 
-        Returns:
-            str: Institution name.
-        """
-        institution_name = None
-        text = re.sub(r"[\n\r]"," ",text).strip()
-        text_stripped = re.sub(r"\s+", ' ',text)
-        doc = self.nlp(text_stripped)
-        places = []  #(place_name,start_index,start_char,place_name_lem)
+        start_ind,end_ind = 0,1000
+        text_len = len(text)
+        text_org = text
 
-        for ent in doc.ents:
-            if ent.label_ == 'placeName':
-                place_index = ent.start_char
-                start_index=place_index-70
-                if place_index-70<0:
-                    start_index=0
-                places.append((ent.text,start_index,ent.start_char))
+        while start_ind<text_len:   
+            text = text_org[start_ind:end_ind]
+            start_ind = end_ind - 100
+            end_ind = min(start_ind+1000,text_len)
 
-        # regex_start = r"(?:szkoł{1,3}|uniwersytet[a-z]?|uczelni\w{0,3}|akademi[a-z]?|instytut|wydział|zakład|katedra|technikum|liceum|zesp(?:ó|o)[a-z]{1,3}|zespół szkół|politechni(?:k|c)[a-z]|wyższ[a-z]{1,2})"
-        regex_school_number = r"([XIVL]{1,7}\s)?"
-        regex_school_type = r"(?:szkoła|uniwersytet|uczelnia|akademi[a-z]?|instytut|wydział|zakład|katedra|technikum|liceum|zesp(?:ó|o)[a-z]{1,3}|zespół szkół|politechni(?:k|c)[a-z]|wyższ[a-z]{1,2})"
-        regex_start = rf"{regex_school_number}{regex_school_type}"
+            # regex_start = r"(?:szkoł{1,3}|uniwersytet[a-z]?|uczelni\w{0,3}|akademi[a-z]?|instytut|wydział|zakład|katedra|technikum|liceum|zesp(?:ó|o)[a-z]{1,3}|zespół szkół|politechni(?:k|c)[a-z]|wyższ[a-z]{1,2})"
+            regex_school_number = r"([XIVL]{1,7}\s)?"
+            regex_school_type = r"(?:szkoła|samorządowa szkoła|uniwersytet|uczelnia|akademia|instytut|wydział|zakład|katedra|technikum|liceum|zespół|zespół szkół|politechnika|wyższa)"
+            regex_start = rf"{regex_school_number}{regex_school_type}"
 
-        for (place_name,start_ind,start_char_place) in places:
+            def check_if_full_name(text: str) -> bool:
+                regex_place = rf".*{regex_school_type}.*(we?\s\w+)$"
+                match_place = re.search(regex_place,text,re.IGNORECASE)
+                if match_place:
+                    place = match_place.group(1)
+                    doc_place = self.nlp(place)
+                    if doc_place.ents[0].label_ == 'placeName':
+                        return True
+                return False
+                    
+            """
+            This function extracts institution name from pdf title and text.
 
-            text_to_analyse = text_stripped[start_ind:start_char_place+len(place_name)]
+            Returns:
+                str: Institution name.
+            """
+            institution_name = None
+            text = re.sub(r"[\n\r]"," ",text).strip()
+            text_stripped = re.sub(r"\s+", ' ',text)
+            text_len = len(text_stripped)
 
-            regex_combined_1 = rf"STATU(?:T|C).*\s+({regex_start}.*{place_name})" # school name often comes after "STATUT"
-            regex_combined_2 = rf"{regex_start}.*{place_name}"
-            
-            result_1 = re.search(regex_combined_1,text_to_analyse,re.IGNORECASE )
-            result_2 = re.search(regex_combined_2, text_to_analyse, re.IGNORECASE ) 
-            
-            if result_1:
-                institution_name_statut = result_1.group(1) # Extracting only school name
-            if result_2: 
-                institution_name = result_2.group()
-                break
-            
-        return institution_name if institution_name is not None else institution_name_statut
-            
+            doc = self.nlp(text_stripped)
+            places = []  # Each tuple: (place_name, start_index, start_char)
+            orgs = []    # Each list: [organization_text, start_index, end_index]
+
+            for ent in doc.ents:
+                if ent.label_ == 'placeName':
+                    place_index = ent.start_char
+                    start_index=max(place_index-90,0)
+                    places.append((ent.text,start_index,place_index))
+
+                    try:
+                        last_org = orgs[-1]
+                    except:
+                        last_org = None
+                    if last_org != None:
+                        org_ind = last_org[1]
+                        if place_index-org_ind<90:
+                            last_org[2] = place_index+len(ent.text)
+                            last_org[3] = ent.text
+                if ent.label_ == 'orgName':
+                    if check_if_full_name(ent.text): 
+                        return ent.text
+                    if orgs:
+                        if orgs[-1][2] == None:
+                            orgs.pop()
+                    org_index = ent.start_char
+                    stop_index = min(org_index+90,text_len)
+                    orgs.append([ent.text,org_index,None,None])
+            if orgs:
+                if orgs[-1][2] == None:
+                    orgs.pop()
+
+
+            institution_name_org,institution_name_statut = None,None
+            for (organization_name,org_start,org_end,place_name) in orgs:
+                institution_name_org = text_stripped[org_start:org_end]
+                regex = rf"{regex_school_type}.*{place_name}"
+                school_search_regex = re.search(regex,institution_name_org,re.IGNORECASE)
+                if school_search_regex: # if school type is found in the text then immediately return
+                    return institution_name_org
+
+            for (place_name,start_ind,start_char_place) in places:
+
+                # Stripped text based on start_ind,start_char_place
+                text_to_analyse = text_stripped[start_ind:start_char_place+len(place_name)]
+
+                regex_combined_1 = rf"STATU(?:T|C).*\s+({regex_start}.*{place_name})" # school name often comes after "STATUT"
+                regex_combined_2 = rf"{regex_start}.*{place_name}"
+                
+                match_1 = re.search(regex_combined_1,text_to_analyse,re.IGNORECASE )
+                match_2 = re.search(regex_combined_2, text_to_analyse, re.IGNORECASE ) 
+                
+                if match_1:
+                    institution_name_statut = match_1.group(1) # Extracting only school name
+                if match_2: 
+                    institution_name = match_2.group()
+                    return institution_name
+                
+            # Return in given order
+            return institution_name_statut if not None else institution_name_org
+                
 
     def _extract_text_with_ocr(self, path: str) -> str:
         """
