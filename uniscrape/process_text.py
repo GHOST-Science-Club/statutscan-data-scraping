@@ -20,11 +20,18 @@ class MarkdownChat(BaseModel):
 
 
 def remove_special_characters(text, special_chars=None):
+    """
+    This function removes any unwanted characters and new lines.
+    """
     if special_chars is None:
         special_chars = r'[^A-Za-z0-9\s\.,;:\'\"\?\!\-ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]'
 
+    # Removing characters defined above
     text = re.sub(special_chars, '', text)
+    # Removing emojis
     text = emoji.replace_emoji(text, replace="")
+    # Removing extra new lines to only one new line
+    text = re.sub(r'\n\s*\n', '\n\n', text)
     return text.strip()
 
 
@@ -67,12 +74,30 @@ def clean_HTML(html: str) -> str:
     """
     soup = BeautifulSoup(html, "html.parser")
 
-    for tag in soup(["script", "style", "nav", "aside", "footer", "form", "noscript", "iframe", "a", "img"]):
+    # Define unwanted html tags
+    for tag in soup(["script", "style", "nav", "aside", "footer", "form", "noscript", "iframe", "img"]):
         tag.extract()
 
     main_content = soup.find("article") or soup.find("main") or soup.body
 
-    text = html2text.html2text(str(main_content))
+    # Remove unwanted divs with given length and keywords
+    meta_keywords = ['kategorie', 'tags',
+                     'language', 'język', 'autor', 'posted in']
+
+    # Getting last five divs
+    divs = main_content.find_all('div')[-5:]
+    for div in divs:
+        t = div.get_text(strip=True).lower()
+        if len(t) < 20 and any(k in t for k in meta_keywords):
+            div.decompose()
+
+    # Define html2text converter
+    converter = html2text.HTML2Text()
+    converter.body_width = 0
+    converter.single_line_break = True
+    converter.ignore_links = True
+
+    text = converter.handle(str(main_content))
     text = remove_special_characters(text)
 
     return text
@@ -80,7 +105,7 @@ def clean_HTML(html: str) -> str:
 
 def get_title_from_url(html: str, url: str) -> str:
     def clean_title(title: str) -> str:
-        return title.strip('/').replace('_', ' ').replace('%', ' ')
+        return title.strip('/').replace('_', ' ').replace('%', ' ').replace('-', ' ').capitalize()
     if html:
         soup = BeautifulSoup(html, "html.parser")
         title = soup.find("meta", property="og:title")

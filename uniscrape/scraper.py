@@ -20,7 +20,6 @@ from pdf2image import convert_from_bytes
 import easyocr
 import numpy as np
 import pymupdf4llm
-import markdown_it
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -183,9 +182,10 @@ class Scraper:
                         title, result, url, date, language, metrics)
                     scraped_count += 1
 
-                    # Send if database acces is True and print in console
+                    # Check minimum length of scraped document
                     if len(result) > self.config.min_text_len:
                         self.logger_print.info(dump_json(json_result))
+                        # Send if database access is True and print in console
                         if self.config.allow_database_connection:
                             db.append_to_database(json_result)
                     else:

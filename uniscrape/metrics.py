@@ -21,17 +21,36 @@ class Analyzer():
         self.nlp = spacy.load("pl_core_news_sm")
 
     def get_metrics(self):
+        """
+        This function returns all metrics used in dashboard.
+
+        Returns:
+            int: Characters count (with white characters).
+            int: Word count.
+            int: Sentences count.
+            int: Verbs count.
+            int: Nouns count.
+            int: Adjectives count.
+            float: Average word length in text.
+            float: Average length of sentence.
+            float: Lexical density (Ratio of unique word to all words)
+            float: Gunning Fog - Weighted average of the number of words per sentence, and the number of long words per word. An interpretation is that the text can be understood by someone who left full-time education at a later age than the index.
+        """
         doc = self.nlp(self.text)
 
-        # Define metrics
+        # Basic metrics
         words = 0
         sentences = 0
-        nouns = 0
-        avg_word_length = 0
-        avg_sentence_length = 0
         verbs = 0
+        nouns = 0
         adjectives = 0
         unique_words = set()
+
+        # Averages
+        avg_word_length = 0
+        avg_sentence_length = 0
+
+        # More metrics
         lexical_density = 0
         camel_case = 0
         capitalized_words = 0
@@ -67,6 +86,9 @@ class Analyzer():
             "characters": len(self.text),
             "words": words,
             "sentences": sentences,
+            "nouns": nouns,
+            "verbs": verbs,
+            "adjectives": adjectives,
             "avg_word_length": round(avg_word_length, 4),
             "avg_sentence_length": round(avg_sentence_length, 4),
             "lexical_density": round(lexical_density, 4),
