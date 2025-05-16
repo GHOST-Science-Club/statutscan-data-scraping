@@ -20,7 +20,7 @@ class Analyzer():
         self.text = text
         self.nlp = spacy.load("pl_core_news_sm")
 
-    def get_metrics(self):
+    def get_metrics(self) -> dict[str, any]:
         """
         This function returns all metrics used in dashboard.
 

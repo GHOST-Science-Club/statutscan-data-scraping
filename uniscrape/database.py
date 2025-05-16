@@ -9,7 +9,7 @@ from pymongo.errors import ConnectionFailure, PyMongoError
 
 
 class Database():
-    def __init__(self, config_manager: ConfigManager, database_name: str = "Data", collection_name: str = "Scraped"):
+    def __init__(self, config_manager: ConfigManager, database_name: str = "Scraped_data", collection_name: str = "Documents"):
         self.config_manager = config_manager
         self.logger_tool = config_manager.logger_tool
         self.logger_print = config_manager.logger_print

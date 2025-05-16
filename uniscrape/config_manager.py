@@ -13,7 +13,7 @@ class ConfigManager:
     A configuration manager for setting up and managing settings for a crawler and scraper.
     """
 
-    def __init__(self, print_to_console: bool = True, log_level=logging.INFO, database: bool = False, sleep_time: float = 1.5,
+    def __init__(self, print_to_console: bool = True, log_level=logging.INFO, database: bool = False, sleep_time: float = 3,
                  max_links: int = 10, minimum_text_length: int = 100, max_retries: int = 2, dataset_language: str = 'pl'):
         """
         Initializes ConfigManager with default or overridden settings.
@@ -39,6 +39,18 @@ class ConfigManager:
         load_dotenv()
         self.database_api_key = os.getenv('MONGO_KEY')
         self.openai_api_key = os.getenv('OPEN_AI_KEY')
+
+        if not self.database_api_key:
+            self.logger_tool.error(
+                "MongoDB API key (MONGO_KEY) not found in environment variables.")
+
+        if not self.openai_api_key:
+            self.logger_tool.error(
+                "OpenAI API key (OPEN_AI_KEY) not found in environment variables.")
+
+        if not self.database_api_key or not self.openai_api_key:
+            raise RuntimeError(
+                "One or more required API keys are missing. Check environment variables.")
 
         # Directories
         self.visited_url_folder = "visited/"
@@ -71,6 +83,9 @@ class ConfigManager:
         logger_tool.setLevel(log_level)
 
         file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
+        if not logger_tool.hasHandlers():
+            logger_tool.addHandler(file_handler)
+
         formatter = logging.Formatter(
             '%(asctime)s: %(levelname)s: %(message)s')
         file_handler.setFormatter(formatter)

@@ -6,18 +6,19 @@ This module contains utility functions for this project.
 import json
 import requests
 from requests.adapters import HTTPAdapter
-import urllib3
 from urllib3.util.retry import Retry
 from datetime import datetime
 
 
-def package_to_json(title: str, content: str, source: str, timestamp: datetime, language: str, metrics: dict) -> dict:
+def package_to_json(title: str, content: str, source: str, institution: str, timestamp: datetime, language: str, type_of_document: str, metrics: dict) -> dict:
     data = {
         "metadata": {
             "title": title,
             "date": timestamp,
             "source": source,
+            "institution": institution,
             "language": language,
+            "type": type_of_document,
             "metrics": metrics
         },
         "content": content
@@ -51,11 +52,11 @@ def create_session(retry_total: bool | int = 3, retry_backoff: float = 3.0, veri
     return session
 
 
-def get_timestamp():
+def get_timestamp() -> datetime:
     """
         Creates timestamp.
 
-        Returns: 
+        Returns:
             datetime: timestamp in format YYYY-MM-DD HH-MM-SS eg. 2025-03-25 21:37:35
     """
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
