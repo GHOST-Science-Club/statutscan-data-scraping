@@ -7,7 +7,7 @@ from .config_manager import ConfigManager
 from .utils import package_to_json, create_session, get_timestamp, dump_json
 from .database import Database
 from .metrics import Analyzer
-from .process_text import clean_PDF, clean_HTML, get_title_from_url
+from .process_text import clean_PDF, clean_HTML, get_title_from_url, get_institution_from_url, classify_document
 
 import logging
 import os
@@ -49,7 +49,7 @@ class Scraper:
             Tuple[str, str]: Extracted title and cleaned text content.
         """
         session = create_session(retry_total=self.config.max_retries)
-        response = session.get(url)
+        response = session.get(url, timeout=10)
 
         if response and response.ok:
             cleaned_response = clean_HTML(response.text)
@@ -57,9 +57,11 @@ class Scraper:
         elif not response:
             self.logger_tool.info(
                 f"Empty response: {url}. Response: {response}")
+            return "", ""
         elif not response.ok:
             self.logger_tool.info(
                 f"Error response: {url}. Response: {response.status_code}")
+            return "", ""
 
         return title, cleaned_response
 
@@ -75,7 +77,7 @@ class Scraper:
         """
 
         session = create_session(retry_total=self.config.max_retries)
-        response = session.get(url)
+        response = session.get(url, timeout=10)
 
         if response and response.ok:
             pdf_bytes = response.content
@@ -98,6 +100,7 @@ class Scraper:
 
         if not text.strip():
             # Use OCR
+            self.logger_tool(f"OCR used for PDF: {url}")
             text = self._extract_with_ocr(pdf_bytes)
             cleaned_response = clean_PDF(text, self.api_key)
         else:
@@ -142,7 +145,6 @@ class Scraper:
         db.connect_to_database()
 
         if urls_to_scrap.empty:
-            self.logger_tool.info("No URLs to scrap.")
             self.logger_print.info("No URLs to scrap.")
             return 0
 
@@ -176,15 +178,18 @@ class Scraper:
 
                     analyzer = Analyzer(result, config=self.config)
                     metrics = analyzer.get_metrics()
+                    institution = get_institution_from_url(url)
+                    classified_class = classify_document(
+                        title, result[2000:], self.api_key)
 
                     # Pack into JSON
                     json_result = package_to_json(
-                        title, result, url, date, language, metrics)
+                        title, result, url, institution, date, language, classified_class, metrics)
                     scraped_count += 1
 
                     # Check minimum length of scraped document
                     if len(result) > self.config.min_text_len:
-                        self.logger_print.info(dump_json(json_result))
+                        # self.logger_print.info(dump_json(json_result))
                         # Send if database access is True and print in console
                         if self.config.allow_database_connection:
                             db.append_to_database(json_result)
