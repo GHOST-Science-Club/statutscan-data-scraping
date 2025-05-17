@@ -15,12 +15,11 @@ class Analyzer():
     CAMEL_CASE_PATTERN = re.compile(
         r"\b[a-ząęćłńóśżź]+[A-ZĄĘĆŁŃÓŚŻŹ]+[a-ząęćłńóśżź]+[a-ząęćłńóśżźA-ZĄĘĆŁŃÓŚŻŹ]*\b")
 
-    def __init__(self, text: str, config: ConfigManager):
+    def __init__(self, config: ConfigManager):
         textstat.set_lang(config.language)
-        self.text = text
         self.nlp = spacy.load("pl_core_news_sm")
 
-    def get_metrics(self) -> dict[str, any]:
+    def get_metrics(self, text: str) -> dict[str, any]:
         """
         This function returns all metrics used in dashboard.
 
@@ -36,7 +35,7 @@ class Analyzer():
             float: Lexical density (Ratio of unique word to all words)
             float: Gunning Fog - Weighted average of the number of words per sentence, and the number of long words per word. An interpretation is that the text can be understood by someone who left full-time education at a later age than the index.
         """
-        doc = self.nlp(self.text)
+        doc = self.nlp(text)
 
         # Basic metrics
         words = 0
@@ -80,10 +79,10 @@ class Analyzer():
         avg_word_length = avg_word_length / words if words else 0
         avg_sentence_length = avg_sentence_length / sentences if sentences else 0
         lexical_density = len(unique_words) / words if words else 0
-        gunning_fog = textstat.gunning_fog(self.text) if words > 0 else 0
+        gunning_fog = textstat.gunning_fog(text) if words > 0 else 0
 
         metrics = {
-            "characters": len(self.text),
+            "characters": len(text),
             "words": words,
             "sentences": sentences,
             "nouns": nouns,

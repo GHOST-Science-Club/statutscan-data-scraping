@@ -7,7 +7,7 @@ from .config_manager import ConfigManager
 from .utils import package_to_json, create_session, get_timestamp, dump_json
 from .database import Database
 from .metrics import Analyzer
-from .process_text import clean_PDF, clean_HTML, get_title_from_url, get_institution_from_url, classify_document
+from .process_text import clean_PDF, clean_HTML, get_title_from_url, get_institution_from_url, classify_document, remove_special_characters, get_all_metadata
 
 import logging
 import os
@@ -20,6 +20,7 @@ from pdf2image import convert_from_bytes
 import easyocr
 import numpy as np
 import pymupdf4llm
+import time
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -37,6 +38,7 @@ class Scraper:
         self.language = self.config.language
         self.api_key = self.config.openai_api_key
         self.ocr = easyocr.Reader([self.language])
+        self.sleep_time = self.config.sleep_time
 
     def _scrape_text(self, url: str) -> Tuple[str, str]:
         """
@@ -102,10 +104,12 @@ class Scraper:
             # Use OCR
             self.logger_tool(f"OCR used for PDF: {url}")
             text = self._extract_with_ocr(pdf_bytes)
-            cleaned_response = clean_PDF(text, self.api_key)
+            cleaned_response = remove_special_characters(
+                clean_PDF(text, self.api_key))
         else:
             # Standard scraping
-            cleaned_response = pymupdf4llm.to_markdown(doc)
+            cleaned_response = remove_special_characters(
+                pymupdf4llm.to_markdown(doc))
 
         title = get_title_from_url(None, url)
 
@@ -149,6 +153,7 @@ class Scraper:
             return 0
 
         visited_urls = self.load_visited_urls()
+        analyzer = Analyzer(config=self.config)
 
         try:
             for index, row in urls_to_scrap.iterrows():
@@ -172,24 +177,16 @@ class Scraper:
                     else:
                         title, result = self._scrape_text(url)
 
-                    # All metadata and metrics
-                    date = get_timestamp()
-                    language = self.config.language
-
-                    analyzer = Analyzer(result, config=self.config)
-                    metrics = analyzer.get_metrics()
-                    institution = get_institution_from_url(url)
-                    classified_class = classify_document(
-                        title, result[2000:], self.api_key)
-
-                    # Pack into JSON
-                    json_result = package_to_json(
-                        title, result, url, institution, date, language, classified_class, metrics)
-                    scraped_count += 1
-
-                    # Check minimum length of scraped document
                     if len(result) > self.config.min_text_len:
-                        # self.logger_print.info(dump_json(json_result))
+                        # All metadata and metrics
+                        metadata = get_all_metadata(
+                            title, result, url, self.config.language, analyzer, self.config)
+
+                        # Pack into JSON
+                        json_result = package_to_json(*metadata)
+                        self.logger_print.info(dump_json(json_result))
+                        scraped_count += 1
+
                         # Send if database access is True and print in console
                         if self.config.allow_database_connection:
                             db.append_to_database(json_result)
@@ -200,6 +197,9 @@ class Scraper:
                     visited_urls = pd.concat(
                         [visited_urls, pd.DataFrame({'url': [url]})], ignore_index=True)
                     self.append_to_visited_urls(pd.DataFrame({'url': [url]}))
+
+                    # Sleep for a while to avoid being blocked by the server
+                    time.sleep(self.sleep_time)
 
                 except Exception as e:
                     self.logger_tool.error(f"Error scraping {url}: {e}")

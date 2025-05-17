@@ -14,6 +14,10 @@ from openai import OpenAI
 from pydantic import BaseModel, Field
 from typing import Literal
 
+from .utils import get_timestamp
+from .metrics import Analyzer
+from .config_manager import ConfigManager
+
 
 def remove_special_characters(text, special_chars=None) -> str:
     """
@@ -26,7 +30,7 @@ def remove_special_characters(text, special_chars=None) -> str:
     text = re.sub(special_chars, '', text)
     # Removing emojis
     text = emoji.replace_emoji(text, replace="")
-    # Removing extra new lines to only one new line
+    # Removing extra new lines
     text = re.sub(r'\n\s*\n', '\n\n', text)
     return text.strip()
 
@@ -66,7 +70,7 @@ def clean_PDF(text: str, api_key: str) -> str:
         markdown_parts.append(text)
         combined = "\n\n".join(markdown_parts)
 
-    return remove_special_characters(combined)
+    return combined
 
 
 def clean_HTML(html: str) -> str:
@@ -155,7 +159,7 @@ class DocumentClassificationResult(BaseModel):
         description=(
             "Final classification of the document into one of the following categories:\n"
             "'Instruction': Practical guidance documents, user manuals, how-tos, or step-by-step procedures.\n"
-            "'Article': Informative or academic content such as publications, blog posts, research findings.\n"
+            "'Article': Informative or academic content such as publications, blog posts, research findings. This is default classification.\n"
             "'Statute': Official policies, rules, regulations, laws, or university resolutions (e.g., uchwaly, regulaminy).\n"
             "'Forms': Templates, application forms, documents meant to be filled out by users."
         ))
@@ -172,8 +176,16 @@ def classify_document_with_LLM(text: str, title: str, api_key: str) -> Literal['
     response = client.beta.chat.completions.parse(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that helps with document classification."},
-            {"role": "user", "content": f"Perform classification. You are given document titled: {title}. \n\n {text}."}
+            {"role": "system", "content": "You are a document classification expert specializing in academic and institutional documents."},
+            {"role": "user", "content":  f"""Analyze and classify this document:
+
+            Title: {title}
+
+            Content:
+            {text}
+
+            Carefully analyze both the title and content to determine the document type.
+        """}
         ],
         response_format=DocumentClassificationResult,
         temperature=0.0
@@ -184,7 +196,7 @@ def classify_document_with_LLM(text: str, title: str, api_key: str) -> Literal['
     return predicted_class
 
 
-def classify_document(url: str, title: str, api: str) -> Literal['Instruction', 'Article', 'Statute', 'Forms']:
+def classify_document(url: str, title: str, text: str, api: str) -> Literal['Instruction', 'Article', 'Statute', 'Forms']:
     """
     Classifies a document based on the URL or, if no match is found, delegates to the LLM classifier.
 
@@ -204,4 +216,21 @@ def classify_document(url: str, title: str, api: str) -> Literal['Instruction', 
         if value in url:
             return key
 
-    return classify_document_with_LLM(url, title, api)
+    return classify_document_with_LLM(title, text, api)
+
+
+def get_all_metadata(title: str, text: str, url: str, language: str, analyzer: Analyzer, config: ConfigManager) -> list[str]:
+    """
+    This function is responsible for getting all metadata from the document.
+
+    Returns:
+        list[str]: A list containing all data about scraped document.
+    """
+
+    institution = get_institution_from_url(url)
+    date = get_timestamp()
+    classified_class = classify_document(
+        url, title, text, config.openai_api_key)
+    metrics = analyzer.get_metrics(text)
+
+    return title, text, url, institution, date, language, classified_class, metrics
