@@ -1,7 +1,6 @@
 from .config_manager import ConfigManager
 from .crawler import Crawler
 from .scraper import Scraper
-from .pdf import Pdf
 
 from typing import Optional
 

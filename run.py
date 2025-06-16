@@ -2,9 +2,9 @@ import argparse
 from uniscrape.core import Core
 from uniscrape.config_manager import ConfigManager
 
-# Define you settings here
-config = ConfigManager(database=False, max_links=30)
-url = "https://instrukcje.put.poznan.pl/category/vpn/"
+
+config = ConfigManager(database=True, max_links=30, print_to_console=True)
+url = ""
 
 
 def main():
@@ -13,8 +13,6 @@ def main():
     )
     parser.add_argument('--crawl_and_scrape', action='store_true',
                         help="Crawl and scrape URLs.")
-    parser.add_argument('--pdf', action='store_true',
-                        help="Scrape PDF documents.")
     parser.add_argument('--scrape', action='store_true',
                         help='Scrape files or urls from .csv.')
     parser.add_argument('--crawl', action='store_true',
@@ -25,8 +23,6 @@ def main():
 
     if args.crawl_and_scrape:
         runner.crawl_and_scrape()
-    elif args.pdf:
-        runner.scrape_local_pdfs()
     elif args.scrape:
         runner.scrape()
     elif args.crawl:

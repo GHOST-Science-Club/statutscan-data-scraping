@@ -1,5 +1,3 @@
-⚠️ This project is currently under development. Some features may not work as expected. ⚠️
-
 This is a tool for scraping and processing data from various sources used in RAG project.
 See our [app](https://github.com/GHOST-Science-Club/statutscan-app). 
 
@@ -27,13 +25,12 @@ pip install .
 ```
 
 ### Run application
-Add url you want to scrape and run app:
+Add urls you want to scrape to `to_scrape/urls_to_scrape.csv` and run app:
 ```
 python3 run.py --param
 ```
 Parameters:
 - --scrape 
-- --pdf
 - --crawl
 - --crawl_and_scrape
 
